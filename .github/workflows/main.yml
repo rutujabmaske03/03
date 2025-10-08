@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Send a Sweet Message 💌</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#ff6b81;--muted:#9aa4bf}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{background: radial-gradient(1200px 600px at 10% 10%, rgba(255,107,129,0.08), transparent), radial-gradient(900px 500px at 90% 90%, rgba(88, 138, 255, 0.06), transparent), var(--bg); color:#e6eef8; display:flex; align-items:center; justify-content:center;padding:24px}
+    .card{width:100%;max-width:760px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:18px;box-shadow:0 8px 30px rgba(2,6,23,0.6); padding:28px}
+    h1{margin:0 0 8px;font-size:28px}
+    p.lead{margin:0 0 18px;color:var(--muted)}
+    .message{background:linear-gradient(90deg, rgba(255,107,129,0.06), rgba(88,138,255,0.03)); border-radius:12px; padding:22px; font-size:20px; line-height:1.45; min-height:120px}
+    .controls{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+    input[type="text"], textarea{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;outline:none}
+    .row{display:flex;gap:12px}
+    .row>div{flex:1}
+    button{background:linear-gradient(90deg,var(--accent),#5cc8ff);border:0;padding:10px 14px;border-radius:10px;color:#07102b;font-weight:600;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:13px}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    .actions{display:flex;gap:8px}
+    .copy-ok{display:inline-block;margin-left:8px;color:#7fffbf;font-weight:600}
+    .center{display:flex;align-items:center;gap:12px}
+    .heart{font-size:22px;margin-left:6px}
+    @media (max-width:560px){h1{font-size:20px}.message{font-size:18px}}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h1>Send a sweet note to your best friend 💌</h1>
+        <p class="lead">Write your message below — then copy or share the custom link. When they open it, your message appears in a pretty page.</p>
+      </div>
+      <div class="center small muted">Made with ❤️ — share the smile <span class="heart">✨</span></div>
+    </div>
+
+    <div style="margin-top:18px">
+      <label class="small muted">Friend's name (optional)</label>
+      <input id="nameInput" type="text" placeholder="E.g., Riya" />
+    </div>
+
+    <div style="margin-top:12px">
+      <label class="small muted">Your message</label>
+      <textarea id="msgInput" rows="4" placeholder="Write something sweet..." style="resize:vertical"></textarea>
+    </div>
+
+    <div class="controls">
+      <button id="makeLinkBtn">Create shareable link</button>
+      <button id="shareBtn">Share (native)</button>
+      <button id="previewBtn">Preview in this tab</button>
+      <div style="flex:1" class="muted small">Tip: the link will encode your message in the URL so you can paste it into WhatsApp, email or DM.</div>
+    </div>
+
+    <div style="margin-top:18px">
+      <div class="muted small">Shareable link</div>
+      <input id="linkOut" type="text" readonly />
+      <div class="actions" style="margin-top:10px">
+        <button id="copyBtn">Copy link</button>
+        <button id="openNewBtn">Open link in new tab</button>
+        <span id="copyStatus" class="copy-ok" style="display:none">Copied!</span>
+      </div>
+    </div>
+
+    <hr style="margin:20px 0;border:0;border-top:1px solid rgba(255,255,255,0.03)" />
+
+    <div class="message" id="displayArea">Your message will appear here when someone opens the share link.</div>
+
+    <footer>
+      <div class="muted">How it works: when you create a link, your message is encoded into the URL (safe, simple). When the recipient opens that URL this page reads the message and shows it. No server required — works when you host the file somewhere public (GitHub Pages, Netlify, Vercel).</div>
+    </footer>
+  </div>
+
+  <script>
+    // Helpers to encode/decode message safely
+    function encodeMessage(name, msg){
+      const payload = JSON.stringify({n:name||'',m:msg||''});
+      return btoa(encodeURIComponent(payload));
+    }
+    function decodeMessage(tok){
+      try{
+        const json = decodeURIComponent(atob(tok));
+        return JSON.parse(json);
+      }catch(e){return {n:'',m:''};}
+    }
+
+    const nameInput = document.getElementById('nameInput');
+    const msgInput = document.getElementById('msgInput');
+    const makeLinkBtn = document.getElementById('makeLinkBtn');
+    const linkOut = document.getElementById('linkOut');
+    const copyBtn = document.getElementById('copyBtn');
+    const copyStatus = document.getElementById('copyStatus');
+    const previewBtn = document.getElementById('previewBtn');
+    const openNewBtn = document.getElementById('openNewBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const displayArea = document.getElementById('displayArea');
+
+    function buildLink(){
+      const name = nameInput.value.trim();
+      const msg = msgInput.value.trim();
+      if(!msg){alert('Please write a message first 🙂');return}
+      const token = encodeMessage(name,msg);
+      const href = location.origin + location.pathname + '?m=' + token;
+      linkOut.value = href;
+      copyStatus.style.display='none';
+    }
+
+    makeLinkBtn.addEventListener('click', buildLink);
+
+    copyBtn.addEventListener('click', async ()=>{
+      if(!linkOut.value){alert('Create a link first');return}
+      try{
+        await navigator.clipboard.writeText(linkOut.value);
+        copyStatus.style.display='inline-block';
+        setTimeout(()=>copyStatus.style.display='none',2000);
+      }catch(e){alert('Clipboard failed — just select and copy the link')}
+    });
+
+    previewBtn.addEventListener('click', ()=>{
+      if(!linkOut.value){alert('Create a link first');return}
+      location.search = '?m=' + encodeMessage(nameInput.value.trim(), msgInput.value.trim());
+    });
+
+    openNewBtn.addEventListener('click', ()=>{
+      if(!linkOut.value){alert('Create a link first');return}
+      window.open(linkOut.value,'_blank');
+    });
+
+    shareBtn.addEventListener('click', async ()=>{
+      if(!linkOut.value) buildLink();
+      if(navigator.share){
+        try{await navigator.share({title:'A note for you', text: msgInput.value, url: linkOut.value});}
+        catch(e){}
+      }else{
+        alert('Native share isn't supported on this device. Copy the link instead.');
+      }
+    });
+
+    // When the page loads, check if there's a message token in the URL
+    function showFromUrl(){
+      const params = new URLSearchParams(location.search);
+      const tok = params.get('m');
+      if(tok){
+        const data = decodeMessage(tok);
+        const name = data.n || '';
+        let m = data.m || '';
+        // simple XSS defense: treat as text
+        const div = document.createElement('div');
+        div.textContent = m;
+        let final = div.innerHTML.replace(/\n/g,'<br>');
+        if(name) final = `<strong style="font-size:18px">Hey ${escapeHtml(name)} ❤️</strong><br><br>` + final;
+        displayArea.innerHTML = final;
+        // small celebratory effect: confetti using simple CSS dots
+        popConfetti();
+      }
+    }
+
+    function escapeHtml(s){return s.replace(/[&<>\"]+/g, function(ch){return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'})[ch]||ch;});}
+
+    function popConfetti(){
+      const n=24; for(let i=0;i<n;i++){const el=document.createElement('div');el.style.position='fixed';el.style.left=(50+ (Math.random()-0.5)*60)+'%';el.style.top=(45+Math.random()*10)+'%';el.style.width='10px';el.style.height='10px';el.style.borderRadius='3px';el.style.opacity='0.95';el.style.transform='translate(-50%,-50%) rotate('+Math.random()*360+'deg)';el.style.background=['#ff6b81','#ffd66b','#7fffbf','#5cc8ff'][Math.floor(Math.random()*4)];el.style.zIndex=9999;el.style.transition='transform 1600ms cubic-bezier(.2,.8,.2,1),opacity 900ms';document.body.appendChild(el);setTimeout(()=>{el.style.transform='translate(-50%,-500%) rotate(720deg)';el.style.opacity='0'},20);setTimeout(()=>el.remove(),1700)}
+    }
+
+    // init
+    showFromUrl();
+  </script>
+</body>
+</html>
